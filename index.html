@@ -33,6 +33,10 @@
         .btn-edit { background: var(--accent); }
         .btn-del { background: var(--danger); }
         .add-name-area { background: #f0f7ff; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #d0e3f7; }
+        
+        /* 版本顯示樣式 */
+        .version-info { text-align: center; font-size: 10px; color: #999; margin-top: 20px; padding-bottom: 20px; }
+        
         .hidden { display: none !important; }
     </style>
 </head>
@@ -73,6 +77,8 @@
             <div id="historyList">讀取中...</div>
         </div>
     </div>
+
+    <div class="version-info">v4.4</div>
 </div>
 
 <script>
@@ -86,10 +92,7 @@
         btn.innerText = '驗證中...'; btn.disabled = true;
 
         fetch(`${scriptURL}?pwd=${encodeURIComponent(input)}&date=test`)
-        .then(res => {
-            if (!res.ok) throw new Error('網路回應不正確');
-            return res.json();
-        })
+        .then(res => res.json())
         .then(res => {
             if (res.auth === true) {
                 userPwd = input;
@@ -97,14 +100,13 @@
                 document.getElementById('mainContent').classList.remove('hidden');
                 if(res.names) updateNameList(res.names);
                 initData();
-                if(res.error) console.warn("GAS 內部警告:", res.error);
             } else {
                 alert('密碼錯誤！');
                 btn.innerText = '登入系統'; btn.disabled = false;
             }
         })
         .catch(err => {
-            alert('連線失敗！可能是 GAS 尚未部署為「新版本」。\n錯誤訊息：' + err.message);
+            alert('連線失敗，請檢查 GAS 部署設定');
             btn.innerText = '登入系統'; btn.disabled = false;
         });
     }
