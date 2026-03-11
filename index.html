@@ -3,35 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>記帳系統 v2.5</title>
+    <title>私人記帳系統 v3.1</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --accent: #f39c12; --yesterday: #3498db; }
         body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; }
         .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto 20px; }
-        
-        /* 登入遮罩 */
         #loginOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--primary); z-index:1000; display:flex; flex-direction:column; justify-content:center; align-items:center; color:white; }
         #loginInput { padding: 12px; border-radius: 8px; border:none; margin-bottom: 15px; width: 220px; text-align: center; font-size: 18px; outline: none; }
-        
         h2 { color: var(--primary); text-align: center; margin-top: 0; }
         h3 { border-bottom: 2px solid #eee; padding-bottom: 8px; font-size: 16px; margin-top: 5px; display: flex; justify-content: space-between; align-items: center; }
-        
-        /* 精緻表單格式 */
         .form-group { margin-bottom: 12px; text-align: left; }
         label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; font-size: 14px; }
         input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; -webkit-appearance: none; }
-        
         button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; color: white; font-weight: bold; transition: 0.2s; }
         #submitBtn { background: var(--success); }
-        #submitBtn:active { transform: scale(0.98); }
         .refresh-btn { background: #f8f9fa; color: #666; font-size: 12px; padding: 4px 10px; width: auto; border: 1px solid #ddd; }
-        
-        /* 結算區排列：靠左 */
         .result-item { background: #fff9e6; border-left: 5px solid var(--accent); padding: 12px; margin-top: 10px; border-radius: 6px; position: relative; text-align: left; }
         .summary-name { font-size: 16px; font-weight: bold; color: var(--primary); display: block; margin-bottom: 4px; }
         .summary-content { font-size: 14px; color: #333; display: block; padding-right: 65px; line-height: 1.4; }
         .copy-btn { position: absolute; right: 10px; bottom: 10px; background: #fff; color: #333; border: 1px solid #ccc; padding: 5px 10px; font-size: 12px; border-radius: 6px; width: auto; }
-        
         .hidden { display: none !important; }
     </style>
 </head>
@@ -52,20 +42,21 @@
                 <input type="date" id="date" required>
             </div>
             <div class="form-group">
-                <label>2. 人名</label>
-                <input type="text" id="name" placeholder="請輸入客戶姓名" required>
+                <label>2. 人名 (點擊選擇熟客)</label>
+                <input type="text" id="name" list="nameList" placeholder="輸入名字或從清單選擇" required>
+                <datalist id="nameList"></datalist>
             </div>
             <div class="form-group">
                 <label>3. 品名</label>
-                <input type="text" id="item" placeholder="例如：盲盒、水晶手鍊" required>
+                <input type="text" id="item" placeholder="例如：黃水晶手鍊" required>
             </div>
             <div class="form-group">
                 <label>4. 售價</label>
-                <input type="number" id="amount" placeholder="請輸入銷售金額" required>
+                <input type="number" id="amount" placeholder="請輸入售價" required>
             </div>
             <div class="form-group">
                 <label>5. 成本</label>
-                <input type="number" id="cost" placeholder="請輸入進貨成本" required>
+                <input type="number" id="cost" placeholder="請輸入成本" required>
             </div>
             <button type="submit" id="submitBtn">確認送出資料</button>
         </form>
@@ -83,14 +74,13 @@
 </div>
 
 <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbzt7VhgySNWoEeMmgSLAbsWxRvc825pZyJOxkLdrqfJx79SrZUFP__PFPIQc5vriw9fOA/exec'; 
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbw0a62bM3Jvr2c1yQHv0LVgHGhhrY28MoFOUW3SJzu59wtRjMhGxUPuOHT5bdw8WPnMrg/exec'; 
     let userPwd = '';
 
     function checkPassword() {
         const input = document.getElementById('loginInput').value;
         const btn = document.getElementById('loginBtn');
         if(!input) return;
-        
         btn.innerText = '驗證中...';
         btn.disabled = true;
 
@@ -99,20 +89,25 @@
         .then(res => {
             if (res.auth === true) {
                 userPwd = input;
-                // 強制徹底移除遮罩
                 document.getElementById('loginOverlay').style.display = 'none';
                 document.getElementById('mainContent').classList.remove('hidden');
+                if(res.names) updateNameList(res.names);
                 initData();
             } else {
                 alert('密碼錯誤！');
-                btn.innerText = '登入系統';
-                btn.disabled = false;
+                btn.innerText = '登入系統'; btn.disabled = false;
             }
         })
-        .catch(err => {
-            alert('連線失敗，請檢查網址或權限');
-            btn.innerText = '登入系統';
-            btn.disabled = false;
+        .catch(() => { alert('連線失敗'); btn.innerText = '登入系統'; btn.disabled = false; });
+    }
+
+    function updateNameList(names) {
+        const list = document.getElementById('nameList');
+        list.innerHTML = '';
+        names.sort().forEach(n => {
+            const opt = document.createElement('option');
+            opt.value = n;
+            list.appendChild(opt);
         });
     }
 
@@ -157,11 +152,6 @@
             if (!res.auth) return;
             area.innerHTML = '';
             const summary = res.data;
-            const keys = Object.keys(summary);
-            if (keys.length === 0) {
-                area.innerHTML = '<div style="text-align:center; color:#999; padding:10px;">尚無帳目</div>';
-                return;
-            }
             for (let name in summary) {
                 const info = summary[name];
                 const formattedItems = info.items.map(str => str.replace(/\s+/g, '')).join(' + ');
@@ -182,10 +172,7 @@
         const t = document.createElement("textarea");
         t.value = text; document.body.appendChild(t);
         t.select();
-        try {
-            document.execCommand('copy');
-            alert('已複製：' + text);
-        } catch (e) { alert('請手動選取'); }
+        try { document.execCommand('copy'); alert('已複製'); } catch (e) {}
         document.body.removeChild(t);
     }
 </script>
