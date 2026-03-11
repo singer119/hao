@@ -167,3 +167,23 @@
             if (!res.auth) return;
             area.innerHTML = '';
             let total = 0, has = false;
+            for (let name in res.data) {
+                has = true; const info = res.data[name];
+                const formatted = info.items.map(str => str.replace(/\s+/g, '')).join(' + ');
+                const div = document.createElement('div'); div.className = 'result-item';
+                div.innerHTML = `<span class="summary-name">${name}</span><span class="summary-content">${formatted} = 合計${info.total}</span><button class="copy-btn" onclick="copyToClipboard('${name} ${formatted} = 合計${info.total}')">複製</button>`;
+                area.appendChild(div);
+                total += info.total;
+            }
+            if (has) {
+                const totalDiv = document.createElement('div'); totalDiv.className = 'total-box';
+                totalDiv.innerHTML = `<div class="total-row">💰 今日總收：$ ${total}</div>`;
+                area.appendChild(totalDiv);
+            } else { area.innerHTML = '<div style="color:#999; text-align:center;">尚無帳目</div>'; }
+        });
+    }
+
+    function copyToClipboard(text) { const t = document.createElement("textarea"); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t); alert('已複製'); }
+</script>
+</body>
+</html>
