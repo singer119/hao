@@ -18,7 +18,6 @@
         
         .result-item { background: #fff9e6; border-left: 5px solid var(--accent); padding: 10px; margin-top: 10px; border-radius: 4px; position: relative; }
         .copy-btn { position: absolute; right: 10px; top: 10px; background: #eee; border: 1px solid #ccc; padding: 4px 8px; font-size: 12px; border-radius: 4px; width: auto; }
-        .profit-info { font-size: 12px; color: #888; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -52,12 +51,11 @@
 
 <div class="card">
     <h2>📊 今日結算</h2>
-    <button id="settleBtn">點擊計算今日業績</button>
+    <button id="settleBtn">點擊顯示今日業績</button>
     <div id="settleArea"></div>
 </div>
 
 <script>
-    // --- 這裡貼上你的 GAS 網址 ---
     const scriptURL = 'https://script.google.com/macros/s/AKfycbwHoBkWFatIs3GzQrMLnpWL4_g04JlLa-KTuNXvJVoWiD3IMiPUR3gCJncsDWpS_sqo6Q/exec'; 
 
     // 預設日期為今天
@@ -86,7 +84,6 @@
         .then(() => {
             alert('寫入成功！');
             form.reset();
-            // 重置後再次帶入今天日期
             document.getElementById('date').value = new Date().toISOString().split('T')[0];
             btn.disabled = false;
             btn.innerText = '確認送出';
@@ -99,7 +96,7 @@
     // 2. 結算功能
     document.getElementById('settleBtn').addEventListener('click', () => {
         const area = document.getElementById('settleArea');
-        const selectedDate = document.getElementById('date').value; // 抓取當前選擇的日期
+        const selectedDate = document.getElementById('date').value; 
         area.innerHTML = '讀取中...';
         
         fetch(scriptURL) 
@@ -107,7 +104,7 @@
         .then(summary => {
             area.innerHTML = '';
             if (Object.keys(summary).length === 0) {
-                area.innerHTML = '今日尚無帳目';
+                area.innerHTML = '該日期尚無帳目';
                 return;
             }
 
@@ -115,7 +112,7 @@
                 const info = summary[name];
                 const itemString = info.items.join(' + ');
                 
-                // 這裡修改為你要求的格式：日期 品名 金額 = 合計XXX元
+                // 複製內容：2026-03-11 黃水晶 100 + 紫水晶 150 = 合計250元
                 const copyText = `${selectedDate} ${itemString} = 合計${info.total}元`;
 
                 const div = document.createElement('div');
@@ -123,15 +120,32 @@
                 div.innerHTML = `
                     <strong>👤 客戶：${name}</strong><br>
                     <small>📅 日期：${selectedDate}</small><br>
-                    内容：${itemString} = 💰${info.total}<br>
-                    <button class="copy-btn" onclick="copyToClipboard('${copyText}')">複製結算文字</button>
+                    內容：${itemString} = 💰${info.total}<br>
+                    <button class="copy-btn" onclick="copyToClipboard('${copyText}')">複製文字</button>
                 `;
                 area.appendChild(div);
             }
         });
     });
+
+    // 3. 一鍵複製函數
+    function copyToClipboard(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('已複製結算內容！');
+            });
+        } else {
+            // 備用方案 (針對部分不支援 clipboard API 的瀏覽器)
+            let textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            alert('已複製結算內容！');
+        }
+    }
 </script>
 
 </body>
-
 </html>
