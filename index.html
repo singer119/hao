@@ -99,9 +99,10 @@
     // 2. 結算功能
     document.getElementById('settleBtn').addEventListener('click', () => {
         const area = document.getElementById('settleArea');
+        const selectedDate = document.getElementById('date').value; // 抓取當前選擇的日期
         area.innerHTML = '讀取中...';
         
-        fetch(scriptURL) // 發送 GET 請求
+        fetch(scriptURL) 
         .then(res => res.json())
         .then(summary => {
             area.innerHTML = '';
@@ -113,28 +114,24 @@
             for (let name in summary) {
                 const info = summary[name];
                 const itemString = info.items.join(' + ');
-                // 格式化：王小名 黃水晶 100 + 紫水晶 150 = 💰台幣 【 250 】 元 已入帳
-                const copyText = `${name}：${itemString} = 💰台幣 【 ${info.total} 】 元 已入帳`;
+                
+                // 這裡修改為你要求的格式：日期 品名 金額 = 合計XXX元
+                const copyText = `${selectedDate} ${itemString} = 合計${info.total}元`;
 
                 const div = document.createElement('div');
                 div.className = 'result-item';
                 div.innerHTML = `
-                    <strong>${name}</strong><br>
-                    ${itemString} = 💰${info.total}<br>
-                    <button class="copy-btn" onclick="copyToClipboard('${copyText}')">複製文字</button>
+                    <strong>👤 客戶：${name}</strong><br>
+                    <small>📅 日期：${selectedDate}</small><br>
+                    内容：${itemString} = 💰${info.total}<br>
+                    <button class="copy-btn" onclick="copyToClipboard('${copyText}')">複製結算文字</button>
                 `;
                 area.appendChild(div);
             }
         });
     });
-
-    // 複製到剪貼簿功能
-    function copyToClipboard(text) {
-        navigator.clipboard.writeText(text).then(() => {
-            alert('已複製入帳格式！');
-        });
-    }
 </script>
 
 </body>
+
 </html>
