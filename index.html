@@ -5,19 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的簡易記帳本</title>
     <style>
-        :root { --primary: #2c3e50; --success: #27ae60; --accent: #f39c12; }
+        :root { --primary: #2c3e50; --success: #27ae60; --accent: #f39c12; --yesterday: #3498db; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; }
         .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto 20px; }
         h2 { color: var(--primary); text-align: center; margin-top: 0; }
         .form-group { margin-bottom: 12px; }
         label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
         input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: 0.3s; }
-        #submitBtn { background: var(--success); color: white; }
-        #settleBtn { background: var(--primary); color: white; margin-top: 10px; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: 0.3s; color: white; }
+        #submitBtn { background: var(--success); }
+        .btn-today { background: var(--primary); margin-top: 10px; }
+        .btn-yesterday { background: var(--yesterday); margin-top: 10px; }
         
         .result-item { background: #fff9e6; border-left: 5px solid var(--accent); padding: 10px; margin-top: 10px; border-radius: 4px; position: relative; }
-        .copy-btn { position: absolute; right: 10px; top: 10px; background: #eee; border: 1px solid #ccc; padding: 4px 8px; font-size: 12px; border-radius: 4px; width: auto; }
+        .copy-btn { position: absolute; right: 10px; top: 10px; background: #eee; border: 1px solid #ccc; padding: 4px 8px; font-size: 12px; border-radius: 4px; width: auto; color: #333; }
+        .summary-text { font-size: 15px; color: #333; line-height: 1.6; padding-right: 60px; }
     </style>
 </head>
 <body>
@@ -25,53 +27,36 @@
 <div class="card">
     <h2>📝 新增帳目</h2>
     <form id="ledgerForm">
-        <div class="form-group">
-            <label>1. 日期</label>
-            <input type="date" id="date" required>
-        </div>
-        <div class="form-group">
-            <label>2. 人名</label>
-            <input type="text" id="name" placeholder="輸入姓名" required>
-        </div>
-        <div class="form-group">
-            <label>3. 品名</label>
-            <input type="text" id="item" placeholder="例如：黃水晶" required>
-        </div>
-        <div class="form-group">
-            <label>4. 售價</label>
-            <input type="number" id="amount" placeholder="銷售金額" required>
-        </div>
-        <div class="form-group">
-            <label>5. 成本</label>
-            <input type="number" id="cost" placeholder="進貨成本" required>
-        </div>
+        <div class="form-group"><label>1. 日期</label><input type="date" id="date" required></div>
+        <div class="form-group"><label>2. 人名</label><input type="text" id="name" placeholder="輸入姓名" required></div>
+        <div class="form-group"><label>3. 品名</label><input type="text" id="item" placeholder="例如：盲盒" required></div>
+        <div class="form-group"><label>4. 售價</label><input type="number" id="amount" placeholder="銷售金額" required></div>
+        <div class="form-group"><label>5. 成本</label><input type="number" id="cost" placeholder="進貨成本" required></div>
         <button type="submit" id="submitBtn">確認送出</button>
     </form>
 </div>
 
 <div class="card">
-    <h2>📊 今日結算</h2>
-    <button id="settleBtn">點擊顯示今日業績</button>
+    <h2>📊 業績結算</h2>
+    <button id="todayBtn" class="btn-today">顯示【今日】結算</button>
+    <button id="yesterdayBtn" class="btn-yesterday">顯示【昨日】結算</button>
     <div id="settleArea"></div>
 </div>
 
 <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbwHoBkWFatIs3GzQrMLnpWL4_g04JlLa-KTuNXvJVoWiD3IMiPUR3gCJncsDWpS_sqo6Q/exec'; 
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbybmvjcurnsHfUnkYj19LoXyRxOhdcmeR7JvGzB4Kb5MAa4ecRoqdhwm5_A3D8FLeTMeA/exec'; // 這裡請記得換成你的網址
 
-    // 預設日期為今天
     window.onload = () => {
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('date').value = today;
     };
 
-    // 1. 送出表單
+    // 送出表單
     const form = document.getElementById('ledgerForm');
     form.addEventListener('submit', e => {
         e.preventDefault();
         const btn = document.getElementById('submitBtn');
-        btn.disabled = true;
-        btn.innerText = '傳送中...';
-
+        btn.disabled = true; btn.innerText = '傳送中...';
         const data = {
             date: document.getElementById('date').value,
             name: document.getElementById('name').value,
@@ -79,73 +64,58 @@
             amount: document.getElementById('amount').value,
             cost: document.getElementById('cost').value
         };
-
         fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) })
         .then(() => {
             alert('寫入成功！');
             form.reset();
             document.getElementById('date').value = new Date().toISOString().split('T')[0];
-            btn.disabled = false;
-            btn.innerText = '確認送出';
-        }).catch(() => {
-            alert('出錯了，請檢查設定');
-            btn.disabled = false;
+            btn.disabled = false; btn.innerText = '確認送出';
         });
     });
 
-    // 2. 結算功能
-    document.getElementById('settleBtn').addEventListener('click', () => {
+    // 核心結算邏輯
+    function loadSettle(dateOffset) {
         const area = document.getElementById('settleArea');
-        const selectedDate = document.getElementById('date').value; 
         area.innerHTML = '讀取中...';
         
-        fetch(scriptURL) 
+        const targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() - dateOffset);
+        const dateStr = targetDate.toISOString().split('T')[0];
+
+        fetch(`${scriptURL}?date=${dateStr}`)
         .then(res => res.json())
         .then(summary => {
-            area.innerHTML = '';
+            area.innerHTML = `<h3>📅 ${dateStr} 結算清單</h3>`;
             if (Object.keys(summary).length === 0) {
-                area.innerHTML = '該日期尚無帳目';
+                area.innerHTML += '該日期尚無帳目';
                 return;
             }
-
             for (let name in summary) {
                 const info = summary[name];
-                const itemString = info.items.join(' + ');
+                const formattedItems = info.items.map(str => str.replace(/\s+/g, '')).join(' + ');
+                const copyText = `${name} ${formattedItems} = 合計${info.total}`;
                 
-                // 複製內容：2026-03-11 黃水晶 100 + 紫水晶 150 = 合計250元
-                const copyText = `${selectedDate} ${itemString} = 合計${info.total}元`;
-
                 const div = document.createElement('div');
                 div.className = 'result-item';
                 div.innerHTML = `
-                    <strong>👤 客戶：${name}</strong><br>
-                    <small>📅 日期：${selectedDate}</small><br>
-                    內容：${itemString} = 💰${info.total}<br>
-                    <button class="copy-btn" onclick="copyToClipboard('${copyText}')">複製文字</button>
+                    <div class="summary-text"><strong>${name}</strong><br>${formattedItems} = 合計${info.total}</div>
+                    <button class="copy-btn" onclick="copyToClipboard('${copyText}')">複製</button>
                 `;
                 area.appendChild(div);
             }
         });
-    });
+    }
 
-    // 3. 一鍵複製函數
+    document.getElementById('todayBtn').addEventListener('click', () => loadSettle(0));
+    document.getElementById('yesterdayBtn').addEventListener('click', () => loadSettle(1));
+
     function copyToClipboard(text) {
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(text).then(() => {
-                alert('已複製結算內容！');
-            });
-        } else {
-            // 備用方案 (針對部分不支援 clipboard API 的瀏覽器)
-            let textArea = document.createElement("textarea");
-            textArea.value = text;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-            alert('已複製結算內容！');
-        }
+        const textArea = document.createElement("textarea");
+        textArea.value = text; document.body.appendChild(textArea);
+        textArea.select(); document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('已複製：' + text);
     }
 </script>
-
 </body>
 </html>
