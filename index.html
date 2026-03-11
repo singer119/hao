@@ -3,74 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>私密記帳系統 v2</title>
+    <title>私密記帳系統 正式版</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --accent: #f39c12; --yesterday: #3498db; }
-        body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 15px; }
+        body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; }
         .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto 20px; }
-        #loginOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--primary); z-index:1000; display:flex; flex-direction:column; justify-content:center; align-items:center; color:white; }
-        #loginInput { padding: 12px; border-radius: 8px; border:none; margin-bottom: 15px; width: 220px; text-align: center; font-size: 18px; }
-        button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; color: white; font-weight: bold; }
+        #loginOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--primary); z-index:1000; display:flex; flex-direction:column; justify-content:center; align-items:center; color:white; transition: 0.5s; }
+        #loginInput { padding: 12px; border-radius: 8px; border:none; margin-bottom: 15px; width: 220px; text-align: center; font-size: 18px; outline: none; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; color: white; font-weight: bold; transition: 0.2s; }
+        #submitBtn { background: var(--success); }
+        #submitBtn:active { transform: scale(0.98); }
         .result-item { background: #fff9e6; border-left: 5px solid var(--accent); padding: 12px; margin-top: 10px; border-radius: 6px; position: relative; }
         .copy-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: #fff; color: #333; border: 1px solid #ccc; padding: 6px 12px; font-size: 13px; border-radius: 6px; width: auto; }
         .hidden { display: none; }
+        .loading-text { text-align: center; color: #999; font-size: 14px; }
     </style>
 </head>
 <body>
 
 <div id="loginOverlay">
-    <h2>🔒 雲端驗證登入</h2>
-    <input type="password" id="loginInput" placeholder="輸入雲端密碼">
-    <button onclick="checkPassword()" style="width:220px; background:var(--success)">驗證並登入</button>
+    <h2>🔒 雲端權限驗證</h2>
+    <input type="password" id="loginInput" placeholder="請輸入存取密碼">
+    <button id="loginBtn" onclick="checkPassword()" style="width:220px; background:var(--success)">登入系統</button>
 </div>
 
 <div id="mainContent" class="hidden">
     <div class="card">
         <h2>📝 新增帳目</h2>
         <form id="ledgerForm">
-            <input type="date" id="date" required style="margin-bottom:10px; padding:10px; width:100%; box-sizing:border-box;">
-            <input type="text" id="name" placeholder="人名" required style="margin-bottom:10px; padding:10px; width:100%; box-sizing:border-box;">
-            <input type="text" id="item" placeholder="品名" required style="margin-bottom:10px; padding:10px; width:100%; box-sizing:border-box;">
-            <input type="number" id="amount" placeholder="售價" required style="margin-bottom:10px; padding:10px; width:100%; box-sizing:border-box;">
-            <input type="number" id="cost" placeholder="成本" required style="margin-bottom:10px; padding:10px; width:100%; box-sizing:border-box;">
-            <button type="submit" id="submitBtn" style="background:var(--success)">確認送出</button>
+            <input type="date" id="date" required style="margin-bottom:10px; padding:12px; width:100%; box-sizing:border-box; border:1px solid #ddd; border-radius:8px;">
+            <input type="text" id="name" placeholder="人名" required style="margin-bottom:10px; padding:12px; width:100%; box-sizing:border-box; border:1px solid #ddd; border-radius:8px;">
+            <input type="text" id="item" placeholder="品名" required style="margin-bottom:10px; padding:12px; width:100%; box-sizing:border-box; border:1px solid #ddd; border-radius:8px;">
+            <input type="number" id="amount" placeholder="售價" required style="margin-bottom:10px; padding:12px; width:100%; box-sizing:border-box; border:1px solid #ddd; border-radius:8px;">
+            <input type="number" id="cost" placeholder="成本" required style="margin-bottom:10px; padding:12px; width:100%; box-sizing:border-box; border:1px solid #ddd; border-radius:8px;">
+            <button type="submit" id="submitBtn">確認送出</button>
         </form>
     </div>
 
     <div class="card">
-        <h3 style="color:var(--primary)">今日結算 <button onclick="loadSettle(0, 'todayArea')" style="width:auto; padding:4px 8px; background:#eee; color:#333; font-size:12px;">刷新</button></h3>
-        <div id="todayArea"></div>
+        <h3 style="color:var(--primary); margin-top:0;">📅 今日結算 <button onclick="loadSettle(0, 'todayArea')" style="width:auto; padding:4px 10px; background:#f0f0f0; color:#333; font-size:12px; float:right;">刷新</button></h3>
+        <div id="todayArea" class="loading-text"></div>
     </div>
 
     <div class="card">
-        <h3 style="color:var(--yesterday)">昨日結算 <button onclick="loadSettle(1, 'yesterdayArea')" style="width:auto; padding:4px 8px; background:#eee; color:#333; font-size:12px;">刷新</button></h3>
-        <div id="yesterdayArea"></div>
+        <h3 style="color:var(--yesterday); margin-top:0;">📅 昨日結算 <button onclick="loadSettle(1, 'yesterdayArea')" style="width:auto; padding:4px 10px; background:#f0f0f0; color:#333; font-size:12px; float:right;">刷新</button></h3>
+        <div id="yesterdayArea" class="loading-text"></div>
     </div>
 </div>
 
 <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbwS5FvwgKVeeqIITMl9Vdk0im9P9WwOq-lxkFPw-nhVg6xvorVIBC6P06J0rbU7IjLqOw/exec'; 
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbzB9OepONBfHK325PTSByNK5nv5It-e8guk5GK03r-JduqH8ghWWAw8rYOKVkhHkGJK3w/exec'; 
     let userPwd = '';
 
     function checkPassword() {
         const input = document.getElementById('loginInput').value;
-        // 嘗試發送一次請求來驗證密碼
-        fetch(`${scriptURL}?pwd=${input}&date=test`)
+        const btn = document.getElementById('loginBtn');
+        btn.innerText = '驗證中...';
+        btn.disabled = true;
+
+        fetch(`${scriptURL}?pwd=${encodeURIComponent(input)}&date=test`)
         .then(res => res.json())
         .then(res => {
             if (res.auth) {
-                userPwd = input; // 暫存密碼供後續讀取使用
-                document.getElementById('loginOverlay').classList.add('hidden');
-                document.getElementById('mainContent').classList.remove('hidden');
-                initData();
+                userPwd = input;
+                document.getElementById('loginOverlay').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loginOverlay').classList.add('hidden');
+                    document.getElementById('mainContent').classList.remove('hidden');
+                    initData();
+                }, 500);
             } else {
                 alert('密碼錯誤！');
+                btn.innerText = '登入系統';
+                btn.disabled = false;
             }
+        })
+        .catch(err => {
+            alert('連線失敗，請檢查網址或權限設定');
+            btn.innerText = '登入系統';
+            btn.disabled = false;
         });
     }
 
     function initData() {
-        document.getElementById('date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('date').value = new Date().toLocaleDateString('en-CA');
         loadSettle(0, 'todayArea');
         loadSettle(1, 'yesterdayArea');
     }
@@ -91,7 +107,7 @@
         .then(() => {
             alert('寫入成功');
             form.reset();
-            document.getElementById('date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('date').value = new Date().toLocaleDateString('en-CA');
             btn.disabled = false;
             loadSettle(0, 'todayArea');
         });
@@ -102,14 +118,19 @@
         area.innerHTML = '讀取中...';
         const targetDate = new Date();
         targetDate.setDate(targetDate.getDate() - offset);
-        const dateStr = targetDate.toISOString().split('T')[0];
+        const dateStr = targetDate.toLocaleDateString('en-CA');
 
-        fetch(`${scriptURL}?pwd=${userPwd}&date=${dateStr}`)
+        fetch(`${scriptURL}?pwd=${encodeURIComponent(userPwd)}&date=${dateStr}`)
         .then(res => res.json())
         .then(res => {
             if (!res.auth) return;
             area.innerHTML = '';
             const summary = res.data;
+            const keys = Object.keys(summary);
+            if (keys.length === 0) {
+                area.innerHTML = '<div style="color:#999; padding:10px;">尚無帳目</div>';
+                return;
+            }
             for (let name in summary) {
                 const info = summary[name];
                 const formattedItems = info.items.map(str => str.replace(/\s+/g, '')).join(' + ');
@@ -126,9 +147,14 @@
     function copyToClipboard(text) {
         const t = document.createElement("textarea");
         t.value = text; document.body.appendChild(t);
-        t.select(); document.execCommand('copy');
+        t.select();
+        try {
+            document.execCommand('copy');
+            alert('已複製：' + text);
+        } catch (e) {
+            alert('請手動選取文字複製');
+        }
         document.body.removeChild(t);
-        alert('已複製');
     }
 </script>
 </body>
