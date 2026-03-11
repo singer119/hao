@@ -3,25 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>私人記帳系統 v3.2</title>
+    <title>私人記帳系統 v4.0</title>
     <style>
-        :root { --primary: #2c3e50; --success: #27ae60; --accent: #f39c12; --yesterday: #3498db; }
+        :root { --primary: #2c3e50; --success: #27ae60; --accent: #f39c12; --yesterday: #3498db; --danger: #e74c3c; }
         body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; }
         .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto 20px; }
         
-        /* 登入遮罩 */
         #loginOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--primary); z-index:1000; display:flex; flex-direction:column; justify-content:center; align-items:center; color:white; }
         #loginInput { padding: 12px; border-radius: 8px; border:none; margin-bottom: 15px; width: 220px; text-align: center; font-size: 18px; outline: none; }
         
         h2 { color: var(--primary); text-align: center; margin-top: 0; }
         h3 { border-bottom: 2px solid #eee; padding-bottom: 8px; font-size: 16px; margin-top: 5px; display: flex; justify-content: space-between; align-items: center; }
         
-        /* 表單樣式 */
         .form-group { margin-bottom: 12px; text-align: left; }
         label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; font-size: 14px; }
         input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; -webkit-appearance: none; }
         
-        /* 針對人名輸入框增加箭頭裝飾 */
         .name-container { position: relative; width: 100%; }
         .name-container::after { content: "▼"; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #aaa; font-size: 10px; pointer-events: none; }
         #name { padding-right: 30px; }
@@ -30,7 +27,15 @@
         #submitBtn { background: var(--success); }
         .refresh-btn { background: #f8f9fa; color: #666; font-size: 12px; padding: 4px 10px; width: auto; border: 1px solid #ddd; }
         
-        /* 結算樣式 */
+        /* 歷史管理面板樣式 */
+        #historyPanel { display:none; background:#fff; border-top: 2px solid var(--primary); padding-top: 15px; }
+        .history-item { border-bottom: 1px solid #eee; padding: 10px 0; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+        .history-info { flex-grow: 1; text-align: left; }
+        .history-btns { display: flex; gap: 5px; }
+        .btn-mini { width: auto; padding: 5px 8px; font-size: 12px; border-radius: 4px; }
+        .btn-edit { background: var(--accent); }
+        .btn-del { background: var(--danger); }
+
         .result-item { background: #fff9e6; border-left: 5px solid var(--accent); padding: 12px; margin-top: 10px; border-radius: 6px; position: relative; text-align: left; }
         .summary-name { font-size: 16px; font-weight: bold; color: var(--primary); display: block; margin-bottom: 4px; }
         .summary-content { font-size: 14px; color: #333; display: block; padding-right: 65px; line-height: 1.4; }
@@ -79,6 +84,13 @@
     </div>
 
     <div class="card">
+        <button id="toggleHistoryBtn" onclick="toggleHistory()" style="background:var(--primary)">🛠️ 開啟紀錄管理 (可修改/刪除)</button>
+        <div id="historyPanel">
+            <div id="historyList">讀取中...</div>
+        </div>
+    </div>
+
+    <div class="card">
         <h3 style="color:var(--primary)">📅 今日結算 <button class="refresh-btn" onclick="loadSettle(0, 'todayArea')">🔄 刷新</button></h3>
         <div id="todayArea"></div>
     </div>
@@ -90,7 +102,7 @@
 </div>
 
 <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbw1hg7MEWBGwJgolAzHDE0-Q21i3u2ORssUYpI7Qbp1zmHJq54IS2_ZsChW5D7oc9ZSuQ/exec'; 
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbybbfFqexIhW-fhd3krurdv6HUP6AGe8SJrJceEJhbvttRFeLlaP2-Vaj5RtwFrJVxuVg/exec'; 
     let userPwd = '';
 
     function checkPassword() {
@@ -127,10 +139,7 @@
         });
     }
 
-    // 手機點擊優化：點一下清空內容並彈出建議
-    document.getElementById('name').addEventListener('click', function() {
-        this.value = '';
-    });
+    document.getElementById('name').addEventListener('click', function() { this.value = ''; });
 
     function initData() {
         document.getElementById('date').value = new Date().toLocaleDateString('en-CA');
@@ -157,8 +166,66 @@
             document.getElementById('date').value = new Date().toLocaleDateString('en-CA');
             btn.disabled = false; btn.innerText = '確認送出資料';
             loadSettle(0, 'todayArea');
+            if(document.getElementById('historyPanel').style.display === 'block') loadHistory();
         });
     });
+
+    // 歷史紀錄切換開關
+    function toggleHistory() {
+        const panel = document.getElementById('historyPanel');
+        const btn = document.getElementById('toggleHistoryBtn');
+        if (panel.style.display === 'block') {
+            panel.style.display = 'none';
+            btn.innerText = '🛠️ 開啟紀錄管理 (可修改/刪除)';
+        } else {
+            panel.style.display = 'block';
+            btn.innerText = '✖️ 關閉紀錄管理';
+            loadHistory();
+        }
+    }
+
+    function loadHistory() {
+        const list = document.getElementById('historyList');
+        list.innerHTML = '讀取最新紀錄中...';
+        fetch(`${scriptURL}?pwd=${encodeURIComponent(userPwd)}&action=getHistory`)
+        .then(res => res.json())
+        .then(res => {
+            list.innerHTML = '';
+            res.history.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerHTML = `
+                    <div class="history-info">
+                        <strong>${item.date} | ${item.name}</strong><br>
+                        ${item.item} ($${item.amount})
+                    </div>
+                    <div class="history-btns">
+                        <button class="btn-mini btn-edit" onclick="editRow(${item.row}, '${item.date}', '${item.name}', '${item.item}', ${item.amount}, ${item.cost})">改</button>
+                        <button class="btn-mini btn-del" onclick="deleteRow(${item.row})">刪</button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        });
+    }
+
+    function deleteRow(row) {
+        if(!confirm('確定要刪除這筆紀錄嗎？')) return;
+        fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ method: 'DELETE', row: row }) })
+        .then(() => { alert('已刪除'); loadHistory(); loadSettle(0, 'todayArea'); });
+    }
+
+    function editRow(row, d, n, i, a, c) {
+        const newName = prompt('修改人名:', n);
+        if (newName === null) return;
+        const newItem = prompt('修改品名:', i);
+        const newAmount = prompt('修改售價:', a);
+        const newCost = prompt('修改成本:', c);
+        
+        const data = { method: 'EDIT', row: row, date: d, name: newName, item: newItem, amount: newAmount, cost: newCost };
+        fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) })
+        .then(() => { alert('修改成功'); loadHistory(); loadSettle(0, 'todayArea'); });
+    }
 
     function loadSettle(offset, areaId) {
         const area = document.getElementById(areaId);
@@ -194,4 +261,3 @@
 </script>
 </body>
 </html>
-
