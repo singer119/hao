@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>私人記帳系統 v4.0</title>
+    <title>私人記帳系統 v4.1</title>
     <style>
-        :root { --primary: #2c3e50; --success: #27ae60; --accent: #f39c12; --yesterday: #3498db; --danger: #e74c3c; }
-        body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; }
+        :root { --primary: #2c3e50; --success: #27ae60; --accent: #f39c12; --yesterday: #3498db; --danger: #e74c3c; --profit: #8e44ad; }
+        body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; padding-bottom: 50px; }
         .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto 20px; }
         
         #loginOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--primary); z-index:1000; display:flex; flex-direction:column; justify-content:center; align-items:center; color:white; }
@@ -27,20 +27,25 @@
         #submitBtn { background: var(--success); }
         .refresh-btn { background: #f8f9fa; color: #666; font-size: 12px; padding: 4px 10px; width: auto; border: 1px solid #ddd; }
         
-        /* 歷史管理面板樣式 */
-        #historyPanel { display:none; background:#fff; border-top: 2px solid var(--primary); padding-top: 15px; }
-        .history-item { border-bottom: 1px solid #eee; padding: 10px 0; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
-        .history-info { flex-grow: 1; text-align: left; }
-        .history-btns { display: flex; gap: 5px; }
-        .btn-mini { width: auto; padding: 5px 8px; font-size: 12px; border-radius: 4px; }
-        .btn-edit { background: var(--accent); }
-        .btn-del { background: var(--danger); }
-
+        /* 結算區樣式 */
         .result-item { background: #fff9e6; border-left: 5px solid var(--accent); padding: 12px; margin-top: 10px; border-radius: 6px; position: relative; text-align: left; }
         .summary-name { font-size: 16px; font-weight: bold; color: var(--primary); display: block; margin-bottom: 4px; }
         .summary-content { font-size: 14px; color: #333; display: block; padding-right: 65px; line-height: 1.4; }
         .copy-btn { position: absolute; right: 10px; bottom: 10px; background: #fff; color: #333; border: 1px solid #ccc; padding: 5px 10px; font-size: 12px; border-radius: 6px; width: auto; }
-        
+
+        /* 總計區樣式 */
+        .total-box { margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 8px; border: 1px dashed #ccc; font-size: 15px; text-align: right; }
+        .total-row { color: var(--primary); font-weight: bold; }
+        .profit-row { color: var(--profit); font-weight: bold; }
+
+        /* 歷史管理面板 */
+        #historyPanel { display:none; background:#fff; border-top: 2px solid var(--primary); padding-top: 15px; }
+        .history-item { border-bottom: 1px solid #eee; padding: 10px 0; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+        .history-info { flex-grow: 1; text-align: left; }
+        .btn-mini { width: auto; padding: 5px 8px; font-size: 12px; border-radius: 4px; margin-left: 5px; }
+        .btn-edit { background: var(--accent); }
+        .btn-del { background: var(--danger); }
+
         .hidden { display: none !important; }
     </style>
 </head>
@@ -84,13 +89,6 @@
     </div>
 
     <div class="card">
-        <button id="toggleHistoryBtn" onclick="toggleHistory()" style="background:var(--primary)">🛠️ 開啟紀錄管理 (可修改/刪除)</button>
-        <div id="historyPanel">
-            <div id="historyList">讀取中...</div>
-        </div>
-    </div>
-
-    <div class="card">
         <h3 style="color:var(--primary)">📅 今日結算 <button class="refresh-btn" onclick="loadSettle(0, 'todayArea')">🔄 刷新</button></h3>
         <div id="todayArea"></div>
     </div>
@@ -98,6 +96,13 @@
     <div class="card">
         <h3 style="color:var(--yesterday)">📅 昨日結算 <button class="refresh-btn" onclick="loadSettle(1, 'yesterdayArea')">🔄 刷新</button></h3>
         <div id="yesterdayArea"></div>
+    </div>
+
+    <div class="card" style="margin-bottom: 50px;">
+        <button id="toggleHistoryBtn" onclick="toggleHistory()" style="background:var(--primary)">🛠️ 開啟紀錄管理 (可修改/刪除)</button>
+        <div id="historyPanel">
+            <div id="historyList">讀取中...</div>
+        </div>
     </div>
 </div>
 
@@ -109,8 +114,7 @@
         const input = document.getElementById('loginInput').value;
         const btn = document.getElementById('loginBtn');
         if(!input) return;
-        btn.innerText = '驗證中...';
-        btn.disabled = true;
+        btn.innerText = '驗證中...'; btn.disabled = true;
 
         fetch(`${scriptURL}?pwd=${encodeURIComponent(input)}&date=test`)
         .then(res => res.json())
@@ -166,11 +170,9 @@
             document.getElementById('date').value = new Date().toLocaleDateString('en-CA');
             btn.disabled = false; btn.innerText = '確認送出資料';
             loadSettle(0, 'todayArea');
-            if(document.getElementById('historyPanel').style.display === 'block') loadHistory();
         });
     });
 
-    // 歷史紀錄切換開關
     function toggleHistory() {
         const panel = document.getElementById('historyPanel');
         const btn = document.getElementById('toggleHistoryBtn');
@@ -199,11 +201,10 @@
                         <strong>${item.date} | ${item.name}</strong><br>
                         ${item.item} ($${item.amount})
                     </div>
-                    <div class="history-btns">
-                        <button class="btn-mini btn-edit" onclick="editRow(${item.row}, '${item.date}', '${item.name}', '${item.item}', ${item.amount}, ${item.cost})">改</button>
+                    <div>
+                        <button class="btn-mini btn-edit" onclick="editRow(${item.row},'${item.date}','${item.name}','${item.item}',${item.amount},${item.cost})">改</button>
                         <button class="btn-mini btn-del" onclick="deleteRow(${item.row})">刪</button>
-                    </div>
-                `;
+                    </div>`;
                 list.appendChild(div);
             });
         });
@@ -216,12 +217,10 @@
     }
 
     function editRow(row, d, n, i, a, c) {
-        const newName = prompt('修改人名:', n);
-        if (newName === null) return;
+        const newName = prompt('修改人名:', n); if (newName === null) return;
         const newItem = prompt('修改品名:', i);
         const newAmount = prompt('修改售價:', a);
         const newCost = prompt('修改成本:', c);
-        
         const data = { method: 'EDIT', row: row, date: d, name: newName, item: newItem, amount: newAmount, cost: newCost };
         fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) })
         .then(() => { alert('修改成功'); loadHistory(); loadSettle(0, 'todayArea'); });
@@ -240,13 +239,32 @@
             if (!res.auth) return;
             area.innerHTML = '';
             const summary = res.data;
+            let totalAmount = 0;
+            let totalProfit = 0;
+            let hasData = false;
+
             for (let name in summary) {
+                hasData = true;
                 const info = summary[name];
                 const formattedItems = info.items.map(str => str.replace(/\s+/g, '')).join(' + ');
                 const div = document.createElement('div');
                 div.className = 'result-item';
                 div.innerHTML = `<span class="summary-name">${name}</span><span class="summary-content">${formattedItems} = 合計${info.total}</span><button class="copy-btn" onclick="copyToClipboard('${name} ${formattedItems} = 合計${info.total}')">複製</button>`;
                 area.appendChild(div);
+                
+                // 累計總額
+                totalAmount += info.total;
+                // 這裡的利潤計算需要在 GAS 端傳回成本資訊，目前我們先顯示業績加總
+            }
+
+            if (!hasData) {
+                area.innerHTML = '<div style="text-align:center; color:#999; padding:10px;">尚無帳目</div>';
+            } else {
+                // 顯示總業績加總
+                const totalDiv = document.createElement('div');
+                totalDiv.className = 'total-box';
+                totalDiv.innerHTML = `<div class="total-row">💰 今日總收：$ ${totalAmount}</div>`;
+                area.appendChild(totalDiv);
             }
         });
     }
