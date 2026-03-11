@@ -3,60 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的簡易記帳本</title>
+    <title>私密記帳系統 v2</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --accent: #f39c12; --yesterday: #3498db; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; }
+        body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 15px; }
         .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto 20px; }
-        h2 { color: var(--primary); text-align: center; margin-top: 0; }
-        .form-group { margin-bottom: 12px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
-        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: 0.3s; color: white; }
-        #submitBtn { background: var(--success); }
-        .btn-today { background: var(--primary); margin-top: 10px; }
-        .btn-yesterday { background: var(--yesterday); margin-top: 10px; }
-        
-        .result-item { background: #fff9e6; border-left: 5px solid var(--accent); padding: 10px; margin-top: 10px; border-radius: 4px; position: relative; }
-        .copy-btn { position: absolute; right: 10px; top: 10px; background: #eee; border: 1px solid #ccc; padding: 4px 8px; font-size: 12px; border-radius: 4px; width: auto; color: #333; }
-        .summary-text { font-size: 15px; color: #333; line-height: 1.6; padding-right: 60px; }
+        #loginOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--primary); z-index:1000; display:flex; flex-direction:column; justify-content:center; align-items:center; color:white; }
+        #loginInput { padding: 12px; border-radius: 8px; border:none; margin-bottom: 15px; width: 220px; text-align: center; font-size: 18px; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; color: white; font-weight: bold; }
+        .result-item { background: #fff9e6; border-left: 5px solid var(--accent); padding: 12px; margin-top: 10px; border-radius: 6px; position: relative; }
+        .copy-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: #fff; color: #333; border: 1px solid #ccc; padding: 6px 12px; font-size: 13px; border-radius: 6px; width: auto; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>📝 新增帳目</h2>
-    <form id="ledgerForm">
-        <div class="form-group"><label>1. 日期</label><input type="date" id="date" required></div>
-        <div class="form-group"><label>2. 人名</label><input type="text" id="name" placeholder="輸入姓名" required></div>
-        <div class="form-group"><label>3. 品名</label><input type="text" id="item" placeholder="例如：盲盒" required></div>
-        <div class="form-group"><label>4. 售價</label><input type="number" id="amount" placeholder="銷售金額" required></div>
-        <div class="form-group"><label>5. 成本</label><input type="number" id="cost" placeholder="進貨成本" required></div>
-        <button type="submit" id="submitBtn">確認送出</button>
-    </form>
+<div id="loginOverlay">
+    <h2>🔒 雲端驗證登入</h2>
+    <input type="password" id="loginInput" placeholder="輸入雲端密碼">
+    <button onclick="checkPassword()" style="width:220px; background:var(--success)">驗證並登入</button>
 </div>
 
-<div class="card">
-    <h2>📊 業績結算</h2>
-    <button id="todayBtn" class="btn-today">顯示【今日】結算</button>
-    <button id="yesterdayBtn" class="btn-yesterday">顯示【昨日】結算</button>
-    <div id="settleArea"></div>
+<div id="mainContent" class="hidden">
+    <div class="card">
+        <h2>📝 新增帳目</h2>
+        <form id="ledgerForm">
+            <input type="date" id="date" required style="margin-bottom:10px; padding:10px; width:100%; box-sizing:border-box;">
+            <input type="text" id="name" placeholder="人名" required style="margin-bottom:10px; padding:10px; width:100%; box-sizing:border-box;">
+            <input type="text" id="item" placeholder="品名" required style="margin-bottom:10px; padding:10px; width:100%; box-sizing:border-box;">
+            <input type="number" id="amount" placeholder="售價" required style="margin-bottom:10px; padding:10px; width:100%; box-sizing:border-box;">
+            <input type="number" id="cost" placeholder="成本" required style="margin-bottom:10px; padding:10px; width:100%; box-sizing:border-box;">
+            <button type="submit" id="submitBtn" style="background:var(--success)">確認送出</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3 style="color:var(--primary)">今日結算 <button onclick="loadSettle(0, 'todayArea')" style="width:auto; padding:4px 8px; background:#eee; color:#333; font-size:12px;">刷新</button></h3>
+        <div id="todayArea"></div>
+    </div>
+
+    <div class="card">
+        <h3 style="color:var(--yesterday)">昨日結算 <button onclick="loadSettle(1, 'yesterdayArea')" style="width:auto; padding:4px 8px; background:#eee; color:#333; font-size:12px;">刷新</button></h3>
+        <div id="yesterdayArea"></div>
+    </div>
 </div>
 
 <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbybmvjcurnsHfUnkYj19LoXyRxOhdcmeR7JvGzB4Kb5MAa4ecRoqdhwm5_A3D8FLeTMeA/exec'; // 這裡請記得換成你的網址
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbwS5FvwgKVeeqIITMl9Vdk0im9P9WwOq-lxkFPw-nhVg6xvorVIBC6P06J0rbU7IjLqOw/exec'; 
+    let userPwd = '';
 
-    window.onload = () => {
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('date').value = today;
-    };
+    function checkPassword() {
+        const input = document.getElementById('loginInput').value;
+        // 嘗試發送一次請求來驗證密碼
+        fetch(`${scriptURL}?pwd=${input}&date=test`)
+        .then(res => res.json())
+        .then(res => {
+            if (res.auth) {
+                userPwd = input; // 暫存密碼供後續讀取使用
+                document.getElementById('loginOverlay').classList.add('hidden');
+                document.getElementById('mainContent').classList.remove('hidden');
+                initData();
+            } else {
+                alert('密碼錯誤！');
+            }
+        });
+    }
 
-    // 送出表單
+    function initData() {
+        document.getElementById('date').value = new Date().toISOString().split('T')[0];
+        loadSettle(0, 'todayArea');
+        loadSettle(1, 'yesterdayArea');
+    }
+
     const form = document.getElementById('ledgerForm');
     form.addEventListener('submit', e => {
         e.preventDefault();
         const btn = document.getElementById('submitBtn');
-        btn.disabled = true; btn.innerText = '傳送中...';
+        btn.disabled = true;
         const data = {
             date: document.getElementById('date').value,
             name: document.getElementById('name').value,
@@ -66,55 +89,46 @@
         };
         fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) })
         .then(() => {
-            alert('寫入成功！');
+            alert('寫入成功');
             form.reset();
             document.getElementById('date').value = new Date().toISOString().split('T')[0];
-            btn.disabled = false; btn.innerText = '確認送出';
+            btn.disabled = false;
+            loadSettle(0, 'todayArea');
         });
     });
 
-    // 核心結算邏輯
-    function loadSettle(dateOffset) {
-        const area = document.getElementById('settleArea');
+    function loadSettle(offset, areaId) {
+        const area = document.getElementById(areaId);
         area.innerHTML = '讀取中...';
-        
         const targetDate = new Date();
-        targetDate.setDate(targetDate.getDate() - dateOffset);
+        targetDate.setDate(targetDate.getDate() - offset);
         const dateStr = targetDate.toISOString().split('T')[0];
 
-        fetch(`${scriptURL}?date=${dateStr}`)
+        fetch(`${scriptURL}?pwd=${userPwd}&date=${dateStr}`)
         .then(res => res.json())
-        .then(summary => {
-            area.innerHTML = `<h3>📅 ${dateStr} 結算清單</h3>`;
-            if (Object.keys(summary).length === 0) {
-                area.innerHTML += '該日期尚無帳目';
-                return;
-            }
+        .then(res => {
+            if (!res.auth) return;
+            area.innerHTML = '';
+            const summary = res.data;
             for (let name in summary) {
                 const info = summary[name];
                 const formattedItems = info.items.map(str => str.replace(/\s+/g, '')).join(' + ');
                 const copyText = `${name} ${formattedItems} = 合計${info.total}`;
-                
                 const div = document.createElement('div');
                 div.className = 'result-item';
-                div.innerHTML = `
-                    <div class="summary-text"><strong>${name}</strong><br>${formattedItems} = 合計${info.total}</div>
-                    <button class="copy-btn" onclick="copyToClipboard('${copyText}')">複製</button>
-                `;
+                div.innerHTML = `<div><strong>${name}</strong><br>${formattedItems} = 合計${info.total}</div>
+                                <button class="copy-btn" onclick="copyToClipboard('${copyText}')">複製</button>`;
                 area.appendChild(div);
             }
         });
     }
 
-    document.getElementById('todayBtn').addEventListener('click', () => loadSettle(0));
-    document.getElementById('yesterdayBtn').addEventListener('click', () => loadSettle(1));
-
     function copyToClipboard(text) {
-        const textArea = document.createElement("textarea");
-        textArea.value = text; document.body.appendChild(textArea);
-        textArea.select(); document.execCommand('copy');
-        document.body.removeChild(textArea);
-        alert('已複製：' + text);
+        const t = document.createElement("textarea");
+        t.value = text; document.body.appendChild(t);
+        t.select(); document.execCommand('copy');
+        document.body.removeChild(t);
+        alert('已複製');
     }
 </script>
 </body>
