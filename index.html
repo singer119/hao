@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>私人記帳系統 v4.3</title>
+    <title>私人記帳系統 v4.4</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --accent: #f39c12; --yesterday: #3498db; --danger: #e74c3c; }
         body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; padding-bottom: 60px; }
@@ -76,7 +76,7 @@
 </div>
 
 <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbxZAWkrkAf0DhUnYZw7akJx3Ex2LR0dx1RvolTm02R21Amf8GIQ3w030HesnOEo_LtdGw/exec'; 
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbxJbu3nkHPytRdSNBt6Ntk419YsmHufzaeq6D38Uc78Fuvtx2HDGuCtojgHzpaxc92b-Q/exec'; 
     let userPwd = '';
 
     function checkPassword() {
@@ -84,15 +84,29 @@
         const btn = document.getElementById('loginBtn');
         if(!input) return;
         btn.innerText = '驗證中...'; btn.disabled = true;
-        fetch(`${scriptURL}?pwd=${encodeURIComponent(input)}&date=test`).then(res => res.json()).then(res => {
+
+        fetch(`${scriptURL}?pwd=${encodeURIComponent(input)}&date=test`)
+        .then(res => {
+            if (!res.ok) throw new Error('網路回應不正確');
+            return res.json();
+        })
+        .then(res => {
             if (res.auth === true) {
                 userPwd = input;
                 document.getElementById('loginOverlay').style.display = 'none';
                 document.getElementById('mainContent').classList.remove('hidden');
                 if(res.names) updateNameList(res.names);
                 initData();
-            } else { alert('密碼錯誤！'); btn.innerText = '登入系統'; btn.disabled = false; }
-        }).catch(() => { alert('連線失敗'); btn.innerText = '登入系統'; btn.disabled = false; });
+                if(res.error) console.warn("GAS 內部警告:", res.error);
+            } else {
+                alert('密碼錯誤！');
+                btn.innerText = '登入系統'; btn.disabled = false;
+            }
+        })
+        .catch(err => {
+            alert('連線失敗！可能是 GAS 尚未部署為「新版本」。\n錯誤訊息：' + err.message);
+            btn.innerText = '登入系統'; btn.disabled = false;
+        });
     }
 
     function updateNameList(names) {
@@ -115,7 +129,8 @@
     document.getElementById('name').addEventListener('click', function() { this.value = ''; });
 
     function initData() {
-        document.getElementById('date').value = new Date().toLocaleDateString('en-CA');
+        const today = new Date();
+        document.getElementById('date').value = today.toLocaleDateString('en-CA');
         loadSettle(0, 'todayArea'); loadSettle(1, 'yesterdayArea');
     }
 
