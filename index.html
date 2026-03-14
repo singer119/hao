@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>私人記帳系統 v5.1</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="記帳系統">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --accent: #f39c12; --yesterday: #3498db; --danger: #e74c3c; --bg: #f0f2f5; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; padding-bottom: 80px; }
@@ -106,7 +112,7 @@
 
     <div id="statsPage" class="page">
         <div class="card">
-            <h3 style="color:var(--primary); margin-top:0;">📅 今日結算 <button class="refresh-btn" style="width:auto; padding:3px 8px; font-size:11px;" onclick="loadSettle(0, 'todayArea')">🔄 刷新</button></h3>
+            <h3 style="color:var(--primary); margin-top:0;">📅 今日結算 <button style="width:auto; padding:3px 8px; font-size:11px; background:#f8f9fa; color:#666; border:1px solid #ddd;" onclick="loadSettle(0, 'todayArea')">🔄 刷新</button></h3>
             <div id="todayArea"></div>
         </div>
         <div class="card">
@@ -124,7 +130,7 @@
             <h3 style="border:none; color:#2980b9; margin-top:0">👤 新增熟客名單</h3>
             <div style="display:flex; gap:8px;">
                 <input type="text" id="newNameInput" placeholder="輸入姓名" style="padding:8px; font-size:14px;">
-                <button onclick="addNewName()" style="width:auto; background:#2980b9; padding:0 15px;">新增</button>
+                <button onclick="addNewName()" style="width:auto; background:#2980b9; padding:0 15px; font-size: 14px;">新增</button>
             </div>
             <div id="currentNamesView" style="font-size:11px; color:#999; margin-top:8px; background:#f9f9f9; padding:8px; border-radius:6px;">載入中...</div>
         </div>
@@ -139,9 +145,18 @@
 </div>
 
 <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbxJbu3nkHPytRdSNBt6Ntk419YsmHufzaeq6D38Uc78Fuvtx2HDGuCtojgHzpaxc92b-Q/exec'; 
+    const scriptURL = '你的GAS網址'; 
     let userPwd = '';
     let globalNames = [];
+
+    // === PWA Service Worker 註冊腳本 ===
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('PWA 已啟用', reg))
+                .catch(err => console.log('PWA 註冊失敗', err));
+        });
+    }
 
     function showPage(pageId, elm) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -229,7 +244,6 @@
         });
     }
 
-    // --- 修改功能的優化：彈窗模式 ---
     function openEdit(row, d, n, i, a, c) {
         document.getElementById('editRow').value = row;
         document.getElementById('editDate').value = d;
