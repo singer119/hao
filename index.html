@@ -2,58 +2,49 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>私人記帳系統 v4.5</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>私人記帳系統 v5.0</title>
     <style>
-        :root { --primary: #2c3e50; --success: #27ae60; --accent: #f39c12; --yesterday: #3498db; --danger: #e74c3c; }
-        body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; padding-bottom: 60px; }
-        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto 20px; }
+        :root { --primary: #2c3e50; --success: #27ae60; --accent: #f39c12; --yesterday: #3498db; --danger: #e74c3c; --bg: #f0f2f5; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; padding-bottom: 80px; }
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto 15px; }
         
-        /* 登入遮罩 */
-        #loginOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--primary); z-index:1000; display:flex; flex-direction:column; justify-content:center; align-items:center; color:white; }
-        #loginInput { padding: 12px; border-radius: 8px; border:none; margin-bottom: 15px; width: 220px; text-align: center; font-size: 18px; outline: none; }
-        
-        h2 { color: var(--primary); text-align: center; margin-top: 0; }
-        
-        /* 折疊區塊樣式 */
-        .collapsible-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
-        .collapsible-header h3 { margin: 0; font-size: 16px; border: none; padding: 0; }
-        .arrow { transition: transform 0.3s; color: #aaa; }
-        .collapsed .arrow { transform: rotate(-90deg); }
-        .collapsible-content { margin-top: 15px; transition: max-height 0.3s ease-out; overflow: hidden; }
-        .hidden-content { display: none; }
+        /* 頁面切換邏輯 */
+        .page { display: none; animation: fadeIn 0.3s ease; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* 表單樣式 */
-        .form-group { margin-bottom: 12px; text-align: left; }
+        /* 底部導覽列 */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: white; display: flex; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1000; padding-bottom: env(safe-area-inset-bottom); }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0; color: #95a5a6; cursor: pointer; transition: 0.2s; }
+        .nav-item.active { color: var(--primary); font-weight: bold; }
+        .nav-icon { font-size: 20px; margin-bottom: 3px; }
+        .nav-label { font-size: 11px; }
+
+        /* 標題與按鈕 */
+        h2 { color: var(--primary); text-align: center; margin-top: 0; font-size: 20px; }
+        .form-group { margin-bottom: 12px; }
         label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; font-size: 14px; }
         input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; -webkit-appearance: none; }
-        
-        .name-container { position: relative; width: 100%; }
-        .name-container::after { content: "▼"; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #aaa; font-size: 10px; pointer-events: none; }
-        
-        button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; color: white; font-weight: bold; transition: 0.2s; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; color: white; font-weight: bold; }
         #submitBtn { background: var(--success); }
-        .refresh-btn { background: #f8f9fa; color: #666; font-size: 11px; padding: 3px 8px; width: auto; border: 1px solid #ddd; border-radius: 5px; }
-
+        
         /* 結算樣式 */
-        .result-item { background: #fff9e6; border-left: 5px solid var(--accent); padding: 12px; margin-top: 10px; border-radius: 6px; position: relative; text-align: left; }
-        .summary-name { font-size: 16px; font-weight: bold; color: var(--primary); display: block; margin-bottom: 4px; }
-        .summary-content { font-size: 14px; color: #333; display: block; padding-right: 65px; line-height: 1.4; }
+        .result-item { background: #fff9e6; border-left: 5px solid var(--accent); padding: 12px; margin-top: 10px; border-radius: 6px; position: relative; }
+        .summary-name { font-size: 16px; font-weight: bold; color: var(--primary); display: block; }
+        .summary-content { font-size: 14px; color: #333; line-height: 1.4; padding-right: 60px; display: block; }
         .copy-btn { position: absolute; right: 10px; bottom: 10px; background: #fff; color: #333; border: 1px solid #ccc; padding: 5px 10px; font-size: 12px; border-radius: 6px; width: auto; }
-        
-        .total-box { margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 8px; border: 1px dashed #ccc; font-size: 15px; text-align: right; font-weight: bold; color: var(--primary); }
+        .total-box { margin-top: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px; border: 1px dashed #ccc; font-size: 16px; text-align: right; font-weight: bold; color: var(--primary); }
 
-        /* 管理面板 */
-        #historyPanel { display:none; background:#fff; border-top: 2px solid var(--primary); padding-top: 15px; }
+        /* 管理區塊 */
+        .collapsible-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 5px 0; }
+        .collapsible-content.hidden-content { display: none; }
         .add-name-area { background: #f0f7ff; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #d0e3f7; }
-        .current-names { font-size: 12px; color: #7f8c8d; margin-top: 8px; background: #fff; padding: 8px; border-radius: 5px; border: 1px solid #eee; max-height: 80px; overflow-y: auto; }
-        
         .history-item { border-bottom: 1px solid #eee; padding: 10px 0; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
         .btn-mini { width: auto; padding: 4px 8px; font-size: 11px; border-radius: 4px; margin-left: 5px; }
-        .btn-edit { background: var(--accent); }
-        .btn-del { background: var(--danger); }
         
-        .version-info { text-align: center; font-size: 10px; color: #ccc; margin-top: 20px; }
+        #loginOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--primary); z-index:2000; display:flex; flex-direction:column; justify-content:center; align-items:center; color:white; }
+        #loginInput { padding: 12px; border-radius: 8px; border:none; margin-bottom: 15px; width: 220px; text-align: center; font-size: 18px; outline: none; }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -65,65 +56,97 @@
     <button id="loginBtn" onclick="checkPassword()" style="width:220px; background:var(--success)">登入系統</button>
 </div>
 
+<div id="navBar" class="bottom-nav hidden">
+    <div class="nav-item active" onclick="showPage('addPage', this)">
+        <span class="nav-icon">📝</span>
+        <span class="nav-label">記帳</span>
+    </div>
+    <div class="nav-item" onclick="showPage('statsPage', this)">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">統計</span>
+    </div>
+    <div class="nav-item" onclick="showPage('managePage', this)">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">管理</span>
+    </div>
+</div>
+
 <div id="mainContent" class="hidden">
-    <div class="card">
-        <h2>📝 新增帳目</h2>
-        <form id="ledgerForm">
-            <div class="form-group"><label>1. 日期</label><input type="date" id="date" required></div>
-            <div class="form-group">
-                <label>2. 姓名 (點擊選單或打字)</label>
-                <div class="name-container"><input type="text" id="name" list="nameList" placeholder="點擊顯示熟客" required autocomplete="off"></div>
-                <datalist id="nameList"></datalist>
-            </div>
-            <div class="form-group"><label>3. 品名</label><input type="text" id="item" placeholder="例如：金運手串" required></div>
-            <div class="form-group"><label>4. 售價</label><input type="number" id="amount" placeholder="金額" required></div>
-            <div class="form-group"><label>5. 成本</label><input type="number" id="cost" placeholder="成本" required></div>
-            <button type="submit" id="submitBtn">確認送出資料</button>
-        </form>
+    <div id="addPage" class="page active">
+        <div class="card">
+            <h2>📝 新增帳目</h2>
+            <form id="ledgerForm">
+                <div class="form-group"><label>日期</label><input type="date" id="date" required></div>
+                <div class="form-group">
+                    <label>姓名 (點擊選單或打字)</label>
+                    <div style="position:relative;">
+                        <input type="text" id="name" list="nameList" placeholder="點擊顯示熟客" required autocomplete="off">
+                        <span style="position:absolute; right:12px; top:50%; transform:translateY(-50%); color:#aaa; font-size:10px; pointer-events:none;">▼</span>
+                    </div>
+                    <datalist id="nameList"></datalist>
+                </div>
+                <div class="form-group"><label>品名</label><input type="text" id="item" placeholder="例如：金運手串" required></div>
+                <div class="form-group"><label>售價</label><input type="number" id="amount" placeholder="銷售金額" required></div>
+                <div class="form-group"><label>成本</label><input type="number" id="cost" placeholder="進貨成本" required></div>
+                <button type="submit" id="submitBtn">確認送出資料</button>
+            </form>
+        </div>
     </div>
 
-    <div class="card">
-        <div class="collapsible-header" onclick="toggleSection('todayContent')">
-            <h3 style="color:var(--primary)">📅 今日結算 <button class="refresh-btn" onclick="event.stopPropagation(); loadSettle(0, 'todayArea')">🔄 刷新</button></h3>
-            <span class="arrow">▼</span>
-        </div>
-        <div id="todayContent" class="collapsible-content">
+    <div id="statsPage" class="page">
+        <div class="card">
+            <h3 style="color:var(--primary); margin-top:0;">📅 今日結算 <button style="width:auto; padding:3px 8px; font-size:11px; background:#f8f9fa; color:#666; border:1px solid #ddd;" onclick="loadSettle(0, 'todayArea')">🔄 刷新</button></h3>
             <div id="todayArea"></div>
         </div>
     </div>
 
-    <div class="card">
-        <div class="collapsible-header" onclick="toggleSection('yesterdayContent')">
-            <h3 style="color:var(--yesterday)">📅 昨日結算 <button class="refresh-btn" onclick="event.stopPropagation(); loadSettle(1, 'yesterdayArea')">🔄 刷新</button></h3>
-            <span class="arrow" id="yesterdayArrow">▼</span>
-        </div>
-        <div id="yesterdayContent" class="collapsible-content hidden-content">
-            <div id="yesterdayArea"></div>
-        </div>
-    </div>
-
-    <div class="card">
-        <button id="toggleHistoryBtn" onclick="toggleHistory()" style="background:var(--primary)">🛠️ 開啟紀錄管理 & 名單新增</button>
-        <div id="historyPanel">
-            <div class="add-name-area">
-                <label style="font-size:13px; font-weight:bold; color:#2980b9;">👤 快速新增熟客</label>
-                <div style="display:flex; gap:8px; margin-top:5px;">
-                    <input type="text" id="newNameInput" placeholder="輸入姓名" style="padding:8px; font-size:14px;">
-                    <button onclick="addNewName()" style="width:auto; background:#2980b9; padding:8px 12px; font-size:14px;">新增</button>
-                </div>
-                <div class="current-names" id="currentNamesView">載入名單中...</div>
+    <div id="managePage" class="page">
+        <div class="card">
+            <div class="collapsible-header" onclick="toggleSection('yesterdayContent')">
+                <h3 style="color:var(--yesterday); margin:0;">📅 昨日結算</h3>
+                <span id="yesterdayArrow">▼</span>
             </div>
-            <div id="historyList">讀取紀錄中...</div>
+            <div id="yesterdayContent" class="collapsible-content hidden-content" style="margin-top:15px;">
+                <div id="yesterdayArea"></div>
+            </div>
         </div>
-    </div>
 
-    <div class="version-info">v4.5</div>
+        <div class="card">
+            <div class="add-name-area">
+                <label style="font-size:13px; font-weight:bold; color:#2980b9;">👤 新增熟客名單</label>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                    <input type="text" id="newNameInput" placeholder="輸入姓名" style="padding:8px; font-size:14px;">
+                    <button onclick="addNewName()" style="width:auto; background:#2980b9; padding:0 15px;">新增</button>
+                </div>
+                <div id="currentNamesView" style="font-size:11px; color:#999; margin-top:8px; background:#fff; padding:5px; border-radius:4px;">載入名單中...</div>
+            </div>
+            <h3>🛠️ 歷史紀錄 (最近30筆)</h3>
+            <div id="historyList">讀取中...</div>
+        </div>
+        
+        <div style="text-align:center; font-size:10px; color:#ccc; margin-top:20px;">私人記帳系統 v5.0</div>
+    </div>
 </div>
 
 <script>
     const scriptURL = 'https://script.google.com/macros/s/AKfycbxJbu3nkHPytRdSNBt6Ntk419YsmHufzaeq6D38Uc78Fuvtx2HDGuCtojgHzpaxc92b-Q/exec'; 
     let userPwd = '';
     let globalNames = [];
+
+    // 切換分頁邏輯
+    function showPage(pageId, elm) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        elm.classList.add('active');
+        
+        // 切換到統計頁時自動刷新
+        if(pageId === 'statsPage') loadSettle(0, 'todayArea');
+        // 切換到管理頁時自動抓紀錄
+        if(pageId === 'managePage') loadHistory();
+        
+        window.scrollTo(0, 0);
+    }
 
     function checkPassword() {
         const input = document.getElementById('loginInput').value;
@@ -135,25 +158,19 @@
                 userPwd = input;
                 document.getElementById('loginOverlay').style.display = 'none';
                 document.getElementById('mainContent').classList.remove('hidden');
-                if(res.names) {
-                    globalNames = res.names;
-                    updateNameList(res.names);
-                }
+                document.getElementById('navBar').classList.remove('hidden');
+                if(res.names) { globalNames = res.names; updateNameList(res.names); }
                 initData();
             } else { alert('密碼錯誤！'); btn.innerText = '登入系統'; btn.disabled = false; }
         }).catch(() => { alert('連線失敗'); btn.innerText = '登入系統'; btn.disabled = false; });
     }
 
-    // 更新選單與管理區的名單預覽
     function updateNameList(names) {
         const list = document.getElementById('nameList');
         const view = document.getElementById('currentNamesView');
         list.innerHTML = '';
         const sorted = names.sort();
-        sorted.forEach(n => {
-            const opt = document.createElement('option'); opt.value = n;
-            list.appendChild(opt);
-        });
+        sorted.forEach(n => { const opt = document.createElement('option'); opt.value = n; list.appendChild(opt); });
         view.innerText = "目前熟客：" + sorted.join('、');
     }
 
@@ -170,15 +187,14 @@
 
     function toggleSection(id) {
         const content = document.getElementById(id);
-        const header = content.previousElementSibling;
+        const arrow = document.getElementById('yesterdayArrow');
         if (content.classList.contains('hidden-content')) {
             content.classList.remove('hidden-content');
-            header.classList.remove('collapsed');
-            // 如果是昨日，開啟時自動讀取一次
-            if(id === 'yesterdayContent') loadSettle(1, 'yesterdayArea');
+            arrow.innerText = '▲';
+            loadSettle(1, 'yesterdayArea');
         } else {
             content.classList.add('hidden-content');
-            header.classList.add('collapsed');
+            arrow.innerText = '▼';
         }
     }
 
@@ -187,8 +203,6 @@
     function initData() {
         document.getElementById('date').value = new Date().toLocaleDateString('en-CA');
         loadSettle(0, 'todayArea');
-        // 昨日預設折疊，所以先不讀取，省流量
-        document.getElementById('yesterdayContent').previousElementSibling.classList.add('collapsed');
     }
 
     const form = document.getElementById('ledgerForm');
@@ -199,36 +213,27 @@
         fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) }).then(() => {
             alert('寫入成功'); form.reset(); initData();
             btn.disabled = false; btn.innerText = '確認送出資料';
-            loadSettle(0, 'todayArea');
         });
     });
 
-    function toggleHistory() {
-        const panel = document.getElementById('historyPanel');
-        const btn = document.getElementById('toggleHistoryBtn');
-        if (panel.style.display === 'block') { panel.style.display = 'none'; btn.innerText = '🛠️ 開啟紀錄管理 & 名單新增'; }
-        else { panel.style.display = 'block'; btn.innerText = '✖️ 關閉紀錄管理'; loadHistory(); }
-    }
-
     function loadHistory() {
         const list = document.getElementById('historyList');
-        list.innerHTML = '讀取最新紀錄中...';
+        list.innerHTML = '讀取中...';
         fetch(`${scriptURL}?pwd=${encodeURIComponent(userPwd)}&action=getHistory`).then(res => res.json()).then(res => {
             list.innerHTML = '';
             res.history.forEach(item => {
                 const div = document.createElement('div'); div.className = 'history-item';
-                div.innerHTML = `<div class="history-info"><strong>${item.date} | ${item.name}</strong><br>${item.item} ($${item.amount})</div><div><button class="btn-mini btn-edit" onclick="editRow(${item.row},'${item.date}','${item.name}','${item.item}',${item.amount},${item.cost})">改</button><button class="btn-mini btn-del" onclick="deleteRow(${item.row})">刪</button></div>`;
+                div.innerHTML = `<div><strong>${item.date} | ${item.name}</strong><br>${item.item} ($${item.amount})</div><div><button class="btn-mini" style="background:var(--accent)" onclick="editRow(${item.row},'${item.date}','${item.name}','${item.item}',${item.amount},${item.cost})">改</button><button class="btn-mini" style="background:var(--danger)" onclick="deleteRow(${item.row})">刪</button></div>`;
                 list.appendChild(div);
             });
         });
     }
 
-    function deleteRow(row) { if(!confirm('確定刪除？')) return; fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ method: 'DELETE', row: row }) }).then(() => { loadHistory(); loadSettle(0, 'todayArea'); }); }
-
+    function deleteRow(row) { if(!confirm('確定刪除？')) return; fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ method: 'DELETE', row: row }) }).then(() => loadHistory()); }
     function editRow(row, d, n, i, a, c) {
         const nN = prompt('人名:', n); if (nN === null) return;
         const nI = prompt('品名:', i), nA = prompt('售價:', a), nC = prompt('成本:', c);
-        fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ method: 'EDIT', row: row, date: d, name: nN, item: nI, amount: nA, cost: nC }) }).then(() => { loadHistory(); loadSettle(0, 'todayArea'); });
+        fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ method: 'EDIT', row: row, date: d, name: nN, item: nI, amount: nA, cost: nC }) }).then(() => loadHistory());
     }
 
     function loadSettle(offset, areaId) {
